@@ -8,37 +8,45 @@
         <input type="number" id="n" value="3">
         <div> Time: <span id="time">None</span> </div>
         <div> Result: <span id="result">None</span> </div>
-        <button onclick="show_error()"> WASM Calculate </button>
-        <button onclick="js_ack()"> JS Calculate </button>
+        <button onclick="run_wasm_ack()"> WASM Calculate </button>
+        <button onclick="run_ack(js_ack)"> JS Calculate </button>
     </body>
     <script>
+        let run_wasm_ack;
+
         let wasm = WebAssembly.instantiateStreaming(fetch("ack.wasm"));
         wasm.then(module => {
             console.log(module);
 
             let wasm_ack = module.instance.exports.ack;
-            let btn = document.querySelector("button");
-            btn.onclick = () => {
-                let m = document.getElementById("m").value;
-                let n = document.getElementById("n").value;
-                let result = document.getElementById("result");
-                result.innerHTML = "Calculating...";
+            run_wasm_ack = () => run_ack(wasm_ack);
+        });
 
+        function run_ack(ack_fn) {
+            let m = document.getElementById("m").value;
+            let n = document.getElementById("n").value;
+            let result = document.getElementById("result");
+            result.innerHTML = "Calculating...";
+
+            try {
                 let t1 = Date.now();
-                let ans = wasm_ack(m, n);
+                let ans = ack_fn(m, n);
                 let t2 = Date.now();
                 result.innerHTML = ans;
 
                 let elapsed = t2 - t1;
                 let time = document.getElementById("time");
                 time.innerHTML = elapsed + " ms";
-            };
-        });
+            } catch (e) {
+                result.innerHTML = "Error";
+            }
+        }
 
         function show_error() {
             let result = document.getElementById("result");
             result.innerHTML = "WASM has not been loaded yet";
         }
+        run_wasm_ack = show_error;
 
         function ack(m, n) {
             if (m == 0) {
@@ -49,21 +57,6 @@
                 return ack(m - 1, ack(m, n - 1));
             }
         }
-
-        function js_ack() {
-            let m = document.getElementById("m").value;
-            let n = document.getElementById("n").value;
-            let result = document.getElementById("result");
-            result.innerHTML = "Calculating...";
-
-            let t1 = Date.now();
-            let ans = ack(m, n);
-            let t2 = Date.now();
-            result.innerHTML = ans;
-
-            let elapsed = t2 - t1;
-            let time = document.getElementById("time");
-            time.innerHTML = elapsed + " ms";
-        }
+        let js_ack = ack;
     </script>
 </html>
